@@ -5,11 +5,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, writeFileSync, rmSync, mkdirSync } from 'fs';
+import { mkdtempSync, writeFileSync, rmSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { ConfigLoader } from '../src/cli/config-loader.js';
-import { ConfigMerger, type MergedConfig } from '../src/cli/config-merger.js';
+import { ConfigMerger } from '../src/cli/config-merger.js';
 import { CONFIG_MODULE_NAME, type ConfigFileSchema } from '../src/cli/config-schema.js';
 import type { CliArgs } from '../src/cli/types.js';
 import { CLI_DEFAULTS } from '../src/cli/types.js';

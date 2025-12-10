@@ -35,6 +35,7 @@ export {
   DatabaseUrlValidator,
   SqlDirectoryValidator,
   EnvFileValidator,
+  ArgumentCombinationValidator,
 } from './validators.js';
 
 export type { Validator } from './validators.js';

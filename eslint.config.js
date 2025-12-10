@@ -28,6 +28,8 @@ export default [
         // Web APIs available in Node.js
         URL: 'readonly',
         URLSearchParams: 'readonly',
+        // Node.js namespace for types
+        NodeJS: 'readonly',
       },
     },
     plugins: {
@@ -72,6 +74,8 @@ export default [
         clearInterval: 'readonly',
         URL: 'readonly',
         URLSearchParams: 'readonly',
+        // Node.js namespace for types
+        NodeJS: 'readonly',
         // Vitest globals
         describe: 'readonly',
         it: 'readonly',

@@ -114,7 +114,7 @@ export class SqlRunner {
 
       // Extract host from masked URL
       const maskedUrl = maskPassword(this.config.databaseUrl);
-      const hostMatch = maskedUrl.match(/@([^:\/]+)/);
+      const hostMatch = maskedUrl.match(/@([^:/]+)/);
       const host = hostMatch ? hostMatch[1] : maskedUrl;
 
       // Scan for SQL files first to get count

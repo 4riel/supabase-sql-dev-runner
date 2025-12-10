@@ -78,6 +78,7 @@ export interface ExitHandler {
 export interface ValidationResult {
   valid: boolean;
   error?: string;
+  warnings?: string[];
 }
 
 /**

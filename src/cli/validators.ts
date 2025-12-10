@@ -7,7 +7,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { FileSystem, ValidationResult } from './types.js';
+import type { CliArgs, FileSystem, ValidationResult } from './types.js';
 import { defaultFileSystem } from './env-loader.js';
 
 /**
@@ -119,12 +119,50 @@ export class EnvFileValidator implements Validator<string | undefined> {
 }
 
 /**
+ * Argument combination validator
+ * Checks for conflicting or unusual argument combinations
+ */
+export class ArgumentCombinationValidator implements Validator<Partial<CliArgs>> {
+  validate(args: Partial<CliArgs>): ValidationResult {
+    const warnings: string[] = [];
+
+    // Check for --watch with --dry-run (contradictory)
+    if (args.watch && args.dryRun) {
+      return {
+        valid: false,
+        error: '--watch and --dry-run cannot be used together. Watch mode requires actual execution.',
+      };
+    }
+
+    // Check for --only with --skip (potentially confusing)
+    if (args.onlyFiles?.length && args.skipFiles?.length) {
+      warnings.push(
+        'Both --only and --skip are specified. Files in --skip will be excluded from --only list.'
+      );
+    }
+
+    // Check for --watch with -y/--yes not specified (informational)
+    if (args.watch && !args.skipConfirmation) {
+      warnings.push(
+        'Watch mode with confirmation prompt: first run will require confirmation, subsequent runs will auto-execute.'
+      );
+    }
+
+    return {
+      valid: true,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
+  }
+}
+
+/**
  * Composite validator for all CLI inputs
  */
 export class CliValidator {
   private databaseUrlValidator = new DatabaseUrlValidator();
   private sqlDirectoryValidator: SqlDirectoryValidator;
   private envFileValidator: EnvFileValidator;
+  private argumentCombinationValidator = new ArgumentCombinationValidator();
 
   constructor(fileSystem: FileSystem = defaultFileSystem) {
     this.sqlDirectoryValidator = new SqlDirectoryValidator(fileSystem);
@@ -157,6 +195,13 @@ export class CliValidator {
    */
   resolveSqlDirectory(directory: string): string {
     return this.sqlDirectoryValidator.resolve(directory);
+  }
+
+  /**
+   * Validate argument combinations
+   */
+  validateArgumentCombinations(args: Partial<CliArgs>): ValidationResult {
+    return this.argumentCombinationValidator.validate(args);
   }
 }
 

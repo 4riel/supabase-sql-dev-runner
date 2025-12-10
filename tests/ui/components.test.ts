@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { renderBanner, renderMinimalBanner } from '../../src/ui/components/banner.js';
 import { renderBox, renderDivider, renderSectionHeader } from '../../src/ui/components/box.js';
 import { renderList, renderKeyValue, renderFileStatus } from '../../src/ui/components/table.js';

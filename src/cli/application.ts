@@ -96,6 +96,9 @@ export class CliApplication {
     // Merge CLI args with config file
     const args = this.configMerger.merge(cliArgs, configResult.config, configResult.filepath);
 
+    // Validate argument combinations
+    this.validateArgumentCombinations(args);
+
     // Show config file info in verbose mode
     if (args.verbose && args.configFileUsed) {
       this.output.log(`Using config file: ${args.configFilePath}`);
@@ -173,6 +176,25 @@ export class CliApplication {
     }
 
     return this.validator.resolveSqlDirectory(args.sqlDirectory);
+  }
+
+  /**
+   * Validate argument combinations
+   */
+  private validateArgumentCombinations(args: MergedConfig): void {
+    const validation = this.validator.validateArgumentCombinations(args);
+
+    if (!validation.valid) {
+      this.output.error(`Error: ${validation.error}`);
+      this.exitHandler.exit(1);
+    }
+
+    // Show warnings if any
+    if (validation.warnings) {
+      for (const warning of validation.warnings) {
+        this.output.warn(`Warning: ${warning}`);
+      }
+    }
   }
 }
 
