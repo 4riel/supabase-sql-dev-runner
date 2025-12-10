@@ -532,6 +532,66 @@ describe('Validators', () => {
       // Env file
       expect(validator.validateEnvFile(undefined).valid).toBe(true);
     });
+
+    describe('argument combinations', () => {
+      it('should reject --watch with --dry-run', () => {
+        const validator = new CliValidator();
+        const result = validator.validateArgumentCombinations({
+          watch: true,
+          dryRun: true,
+        });
+
+        expect(result.valid).toBe(false);
+        expect(result.error).toContain('--watch and --dry-run cannot be used together');
+      });
+
+      it('should warn when --only and --skip are both specified', () => {
+        const validator = new CliValidator();
+        const result = validator.validateArgumentCombinations({
+          onlyFiles: ['file1.sql'],
+          skipFiles: ['file2.sql'],
+        });
+
+        expect(result.valid).toBe(true);
+        expect(result.warnings).toBeDefined();
+        expect(result.warnings).toHaveLength(1);
+        expect(result.warnings![0]).toContain('--only and --skip');
+      });
+
+      it('should warn about watch mode with confirmation prompt', () => {
+        const validator = new CliValidator();
+        const result = validator.validateArgumentCombinations({
+          watch: true,
+          skipConfirmation: false,
+        });
+
+        expect(result.valid).toBe(true);
+        expect(result.warnings).toBeDefined();
+        expect(result.warnings![0]).toContain('confirmation');
+      });
+
+      it('should not warn about watch mode when -y is specified', () => {
+        const validator = new CliValidator();
+        const result = validator.validateArgumentCombinations({
+          watch: true,
+          skipConfirmation: true,
+        });
+
+        expect(result.valid).toBe(true);
+        expect(result.warnings).toBeUndefined();
+      });
+
+      it('should return no warnings for valid combinations', () => {
+        const validator = new CliValidator();
+        const result = validator.validateArgumentCombinations({
+          verbose: true,
+          skipConfirmation: true,
+        });
+
+        expect(result.valid).toBe(true);
+        expect(result.warnings).toBeUndefined();
+      });
+    });
   });
 });
 

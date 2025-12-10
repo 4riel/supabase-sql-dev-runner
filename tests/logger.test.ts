@@ -183,6 +183,34 @@ describe('ConsoleLogger', () => {
 
       expect(content).toContain('[INFO]');
     });
+
+    it('should handle file write errors gracefully', () => {
+      const logger = new ConsoleLogger({ logDirectory: testLogDir });
+      logger.info('First message');
+
+      // Delete the log directory to cause write errors
+      fs.rmSync(testLogDir, { recursive: true, force: true });
+
+      // Should not throw, just silently fail file write
+      expect(() => {
+        logger.info('Second message after dir deleted');
+        logger.error('Error after dir deleted');
+      }).not.toThrow();
+    });
+
+    it('should handle directory creation failure gracefully', () => {
+      // Use an invalid path that can't be created (Windows-specific invalid chars)
+      // On Unix, use a path under a non-writable location
+      const invalidPath = process.platform === 'win32'
+        ? 'Z:\\nonexistent\\invalid<>path'
+        : '/root/cannot-create-here-' + Date.now();
+
+      // Should not throw during construction
+      expect(() => {
+        const logger = new ConsoleLogger({ logDirectory: invalidPath });
+        logger.info('Test message');
+      }).not.toThrow();
+    });
   });
 });
 

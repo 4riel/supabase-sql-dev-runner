@@ -40,16 +40,27 @@ export class ConsoleLogger implements Logger {
     this.logDirectory = options.logDirectory ?? null;
 
     if (this.logDirectory) {
-      this.ensureLogDirectory();
-      this.logFile = path.join(this.logDirectory, 'sql-runner.log');
-      this.errorFile = path.join(this.logDirectory, 'sql-runner-error.log');
+      const dirCreated = this.ensureLogDirectory();
+      if (dirCreated) {
+        this.logFile = path.join(this.logDirectory, 'sql-runner.log');
+        this.errorFile = path.join(this.logDirectory, 'sql-runner-error.log');
+      } else {
+        // Directory creation failed - disable file logging
+        this.logDirectory = null;
+      }
     }
   }
 
   /** Creates the log directory if it doesn't exist */
-  private ensureLogDirectory(): void {
-    if (this.logDirectory && !fs.existsSync(this.logDirectory)) {
-      fs.mkdirSync(this.logDirectory, { recursive: true });
+  private ensureLogDirectory(): boolean {
+    try {
+      if (this.logDirectory && !fs.existsSync(this.logDirectory)) {
+        fs.mkdirSync(this.logDirectory, { recursive: true });
+      }
+      return true;
+    } catch {
+      // Failed to create log directory - file logging will be disabled
+      return false;
     }
   }
 
@@ -60,12 +71,17 @@ export class ConsoleLogger implements Logger {
 
   /** Appends a message to log files (main log and optionally error log) */
   private writeToFile(message: string, isError = false): void {
-    if (this.logFile) {
-      fs.appendFileSync(this.logFile, `${message}\n`);
-    }
+    try {
+      if (this.logFile) {
+        fs.appendFileSync(this.logFile, `${message}\n`);
+      }
 
-    if (isError && this.errorFile) {
-      fs.appendFileSync(this.errorFile, `${message}\n`);
+      if (isError && this.errorFile) {
+        fs.appendFileSync(this.errorFile, `${message}\n`);
+      }
+    } catch {
+      // Silently ignore file write errors (e.g., directory deleted mid-execution)
+      // Console output is still available, so the user won't lose information
     }
   }
 
