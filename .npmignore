@@ -1,0 +1,31 @@
+# Source files (we ship compiled code)
+src/
+tests/
+scripts/
+
+# Config files
+tsconfig*.json
+vitest.config.ts
+eslint.config.js
+.eslintrc*
+.prettierrc
+.prettierrc*
+.editorconfig
+.nvmrc
+
+# Development files
+.gitignore
+.github/
+CHANGELOG.md
+
+# Misc
+*.log
+coverage/
+.env*
+
+# User-generated directories
+sql/
+logs/
+
+# AI assistant context file
+CLAUDE.md

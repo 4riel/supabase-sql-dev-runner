@@ -1,0 +1,89 @@
+{
+  "name": "supabase-sql-dev-runner",
+  "version": "1.0.0",
+  "description": "Execute SQL scripts sequentially on Supabase PostgreSQL with transaction safety, savepoints, and automatic rollback. Perfect for development database setup and AI agent integration.",
+  "author": "4riel",
+  "license": "MIT",
+  "keywords": [
+    "supabase",
+    "postgresql",
+    "sql",
+    "database",
+    "migration",
+    "development",
+    "scripts",
+    "runner",
+    "transaction",
+    "rollback"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/types/index.d.ts",
+        "default": "./dist/esm/index.js"
+      },
+      "require": {
+        "types": "./dist/types/index.d.cts",
+        "default": "./dist/cjs/index.cjs"
+      }
+    }
+  },
+  "bin": {
+    "supabase-sql-runner": "./dist/cli/cli/cli.js",
+    "sql-runner": "./dist/cli/cli/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "version:sync": "node scripts/sync-version.js",
+    "build": "npm run version:sync && npm run build:esm && npm run build:cjs && npm run build:types && npm run build:types:cjs && npm run build:cli",
+    "build:esm": "tsc -p tsconfig.esm.json",
+    "build:cjs": "tsc -p tsconfig.cjs.json && node scripts/fix-cjs.js",
+    "build:types": "tsc -p tsconfig.types.json",
+    "build:types:cjs": "node scripts/copy-types.js",
+    "build:cli": "tsc -p tsconfig.cli.json",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm run test",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint src tests",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "cosmiconfig": "^9.0.0",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.2",
+    "@types/pg": "^8.15.6",
+    "@typescript-eslint/eslint-plugin": "^8.49.0",
+    "@typescript-eslint/parser": "^8.49.0",
+    "eslint": "^9.39.1",
+    "prettier": "^3.7.4",
+    "rimraf": "^6.1.2",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/4riel/supabase-sql-dev-runner.git"
+  },
+  "bugs": {
+    "url": "https://github.com/4riel/supabase-sql-dev-runner/issues"
+  },
+  "homepage": "https://github.com/4riel/supabase-sql-dev-runner#readme"
+}
