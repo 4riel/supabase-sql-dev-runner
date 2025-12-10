@@ -51,7 +51,7 @@ export class UIRenderer {
 
   constructor(options: UIRendererOptions = {}) {
     this.name = options.name ?? 'sql-runner';
-    this.version = options.version ?? '1.0.0';
+    this.version = options.version ?? '1.0.1';
     this.stream = options.stream ?? process.stdout;
     this.silent = options.silent ?? false;
   }

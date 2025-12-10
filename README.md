@@ -1,6 +1,7 @@
 # supabase-sql-dev-runner
 
 [![npm version](https://img.shields.io/npm/v/supabase-sql-dev-runner.svg)](https://www.npmjs.com/package/supabase-sql-dev-runner)
+[![GitHub](https://img.shields.io/github/stars/4riel/supabase-sql-dev-runner?style=social)](https://github.com/4riel/supabase-sql-dev-runner)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Run SQL scripts on Supabase with transaction safety. No more copy-pasting into the dashboard.
@@ -20,7 +21,27 @@ This tool fixes that. One command, all your SQL files run in order, wrapped in a
 ## Install
 
 ```bash
+# npm
 npm install supabase-sql-dev-runner
+
+# yarn
+yarn add supabase-sql-dev-runner
+
+# pnpm
+pnpm add supabase-sql-dev-runner
+```
+
+Or run directly without installing:
+
+```bash
+# npm
+npx sql-runner
+
+# yarn
+yarn dlx supabase-sql-dev-runner
+
+# pnpm
+pnpm dlx supabase-sql-dev-runner
 ```
 
 ## Setup
@@ -295,6 +316,195 @@ const result = await runner.run({
 });
 ```
 
+### Advanced API
+
+The library exports additional utilities for advanced use cases:
+
+#### Connection utilities
+
+```typescript
+import {
+  parseDatabaseUrl,
+  maskPassword,
+  validateDatabaseUrl,
+  getErrorMessage,
+} from 'supabase-sql-dev-runner';
+
+// Parse a database URL into its components
+const config = parseDatabaseUrl('postgres://user:pass@host:5432/db');
+// { host, port, database, user, password, ssl }
+
+// Mask password for safe logging
+const safeUrl = maskPassword('postgres://user:secret@host/db');
+// "postgres://user:****@host/db"
+
+// Validate URL format
+const isValid = validateDatabaseUrl(url); // boolean
+```
+
+#### File scanner utilities
+
+```typescript
+import {
+  scanSqlFiles,
+  readSqlFile,
+  createSavepointName,
+  DEFAULT_FILE_PATTERN,
+  DEFAULT_IGNORE_PATTERN,
+} from 'supabase-sql-dev-runner';
+
+// Scan directory for SQL files
+const files = await scanSqlFiles('./sql', {
+  pattern: DEFAULT_FILE_PATTERN,     // /\.sql$/
+  ignorePattern: DEFAULT_IGNORE_PATTERN, // /^_ignored|README/
+});
+
+// Read SQL file content
+const sql = await readSqlFile('./sql/01_tables.sql');
+
+// Generate savepoint name from filename
+const savepoint = createSavepointName('01_tables.sql');
+// "sp_01_tables_sql"
+```
+
+#### Custom loggers
+
+```typescript
+import {
+  ConsoleLogger,
+  SilentLogger,
+  createLogger,
+} from 'supabase-sql-dev-runner';
+
+// Console logger with file logging
+const logger = new ConsoleLogger({ logDirectory: './logs' });
+
+// Silent logger for tests/CI
+const silent = new SilentLogger();
+
+// Factory function
+const auto = createLogger({
+  logDirectory: './logs',  // or null to disable
+  silent: false,           // true for SilentLogger
+});
+
+// Use with SqlRunner
+const runner = new SqlRunner({
+  databaseUrl: process.env.DATABASE_URL,
+  sqlDirectory: './sql',
+  logger: silent, // No console output
+});
+```
+
+#### Watch mode programmatic
+
+```typescript
+import { startWatcher } from 'supabase-sql-dev-runner';
+
+const cleanup = startWatcher({
+  directory: './sql',
+  pattern: /\.sql$/,
+  countdownSeconds: 30,
+  onExecute: async () => {
+    await runner.run({ skipConfirmation: true });
+  },
+  logger: {
+    info: (msg) => console.log(msg),
+    warning: (msg) => console.warn(msg),
+  },
+});
+
+// Stop watching when done
+process.on('SIGINT', cleanup);
+```
+
+#### Low-level SQL executor
+
+```typescript
+import { SqlExecutor } from 'supabase-sql-dev-runner';
+
+// For direct transaction control
+const executor = new SqlExecutor(connectionConfig, logger);
+await executor.connect();
+await executor.beginTransaction();
+
+try {
+  await executor.executeSql('CREATE TABLE test (id INT)', 'setup');
+  await executor.commit();
+} catch (error) {
+  await executor.rollback();
+}
+
+await executor.disconnect();
+```
+
+#### Error handling extensibility
+
+The error system is built on SOLID principles and fully extensible:
+
+```typescript
+import {
+  // Handler and helpers
+  ConnectionErrorHandler,
+  getConnectionErrorHelp,
+  formatConnectionErrorHelp,
+
+  // Formatters (choose output format)
+  ConsoleErrorFormatter,  // Styled terminal output
+  SimpleErrorFormatter,   // Plain text
+  JsonErrorFormatter,     // JSON (for logging systems)
+  MarkdownErrorFormatter, // Markdown (for docs/issues)
+
+  // For custom detectors
+  BaseErrorDetector,
+  DefaultErrorDetectorRegistry,
+} from 'supabase-sql-dev-runner';
+
+// Quick usage
+const help = getConnectionErrorHelp(error, databaseUrl);
+console.error(formatConnectionErrorHelp(help));
+
+// Custom formatter
+const handler = new ConnectionErrorHandler({
+  formatter: new JsonErrorFormatter({ pretty: true }),
+});
+const jsonHelp = handler.format(handler.getHelp(error, { databaseUrl }));
+```
+
+### TypeScript types
+
+All types are exported for full TypeScript support:
+
+```typescript
+import type {
+  // Core types
+  SqlRunnerConfig,
+  RunOptions,
+  Logger,
+
+  // Results
+  FileExecutionResult,
+  ExecutionSummary,
+  SqlRunnerError,
+
+  // Connection
+  ConnectionConfig,
+
+  // Events
+  SqlRunnerEvent,
+
+  // Error handling
+  ConnectionContext,
+  ErrorHelp,
+  ErrorDetector,
+  ErrorFormatter,
+  ErrorDetectorRegistry,
+
+  // Watch mode
+  WatchOptions,
+} from 'supabase-sql-dev-runner';
+```
+
 ## How It Works
 
 - Files execute in alphabetical order (`00_`, `01_`, `02_`...)
@@ -302,6 +512,45 @@ const result = await runner.run({
 - Each file gets a savepoint for precise error tracking
 - If any file fails, all changes roll back
 - Files starting with `_ignored` or `README` are skipped
+
+## Watch Mode
+
+Watch mode (`--watch` or `-w`) provides a smooth development experience with smart execution timing:
+
+```bash
+sql-runner --watch
+```
+
+### How it works
+
+1. **File change detected** - When you save a `.sql` file, a 30-second countdown starts
+2. **Countdown display** - You'll see: `Running in 30s... (save again to reset)`
+3. **Reset on save** - Saving again resets the countdown, so you can make multiple quick edits
+4. **Auto-execute** - After 30 seconds of no changes, your SQL files run automatically
+5. **Queued changes** - If you save during execution, the next run is queued
+
+### First run behavior
+
+On the first run, you'll need to confirm execution (unless using `-y`). After that, watch mode automatically skips confirmation for subsequent runs.
+
+### Typical workflow
+
+```bash
+# Start watching with verbose output
+sql-runner --watch --verbose
+
+# Now edit your SQL files...
+# - Save 01_tables.sql → countdown starts (30s)
+# - Save again with a fix → countdown resets (30s)
+# - Wait for countdown → files execute
+# - See results, make more changes → repeat
+```
+
+### Tips
+
+- Combine with `--verbose` to see detailed execution info
+- Use `--skip "06_seed.sql"` to exclude slow seed files during development
+- Press `Ctrl+C` to stop watching gracefully
 
 ## Configuration
 
@@ -375,6 +624,67 @@ interface ExecutionSummary {
 - Check files end with `.sql`
 - Make sure they don't start with `_ignored`
 - Use `--verbose` to see which files are found
+
+## Release Process
+
+### Changelog Format
+
+We follow [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) format:
+
+```markdown
+## [X.Y.Z] - YYYY-MM-DD
+
+### Added
+- New features
+
+### Changed
+- Changes to existing functionality
+
+### Deprecated
+- Features to be removed in future
+
+### Removed
+- Removed features
+
+### Fixed
+- Bug fixes
+
+### Security
+- Security fixes
+```
+
+### Version Bump Checklist
+
+1. **Update version** in `package.json`
+2. **Run build** to sync version across files:
+   ```bash
+   npm run build
+   ```
+3. **Update CHANGELOG.md** with new version section
+4. **Run tests** to ensure everything passes:
+   ```bash
+   npm test
+   ```
+5. **Verify version** shows correctly:
+   ```bash
+   npx sql-runner --version
+   ```
+
+### Changelog Categories
+
+Use these categories to organize changes in each version:
+
+| Category | Use for |
+|----------|---------|
+| **Core Features** | Main functionality (execution, transactions, etc.) |
+| **CLI Tool** | Command-line interface changes |
+| **Programmatic API** | Library API changes |
+| **Error Handling** | Error detection and messages |
+| **Security** | Security-related changes |
+| **Logging** | Logging and output changes |
+| **Build & Distribution** | Build system, package format |
+| **UI System** | Terminal UI components |
+| **Developer Experience** | DX improvements, docs |
 
 ## License
 

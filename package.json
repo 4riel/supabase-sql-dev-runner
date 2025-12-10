@@ -1,6 +1,6 @@
 {
   "name": "supabase-sql-dev-runner",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Execute SQL scripts sequentially on Supabase PostgreSQL with transaction safety, savepoints, and automatic rollback. Perfect for development database setup and AI agent integration.",
   "author": "4riel",
   "license": "MIT",
